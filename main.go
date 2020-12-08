@@ -199,7 +199,7 @@ func CreateConnection() (*mongo.Client,error){
 	// connect to mongodb
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	
+
 	MongoURI := "mongodb://localhost:27017"
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(
 		MongoURI,
