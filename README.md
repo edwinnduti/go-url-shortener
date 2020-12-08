@@ -2,7 +2,7 @@
 A URL-SHORTENER API that uses Golang and MongoDB and works similarly like bit.ly .
 
 ![License: MIT](https://img.shields.io/badge/Language-Golang-blue.svg)
-[![Build Status](https://travis-ci.org/edwinnduti/go-url-shortener.svg?branch=master)](https://travis-ci.org/edwinnduti/go-url-shortener)
+[![Build Status](https://travis-ci.com/edwinnduti/go-url-shortener.svg?branch=master)](https://travis-ci.com/edwinnduti/go-url-shortener)
 ![License: MIT](https://img.shields.io/badge/Database-MongoDB-lightgreen.svg)
 
 A REST API url-shortener made in Golang.
