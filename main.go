@@ -1,24 +1,29 @@
+/*
+[*] Copyright © 2020
+[*] Dev/Author ->  Edwin Nduti
+[*] Description:
+	A Golang and mongoDB Url-shortener similar to https://bit.ly
+ */
+
 package main
 
+// libraries to use
 import (
+	"os"
+	"log"
+	"time"
 	"context"
+	"net/http"
 	"encoding/json"
 	"github.com/gorilla/mux"
+	//"github.com/urfave/negroni"
 	"github.com/speps/go-hashids"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-
-	//"github.com/urfave/negroni"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
-	"net/http"
-	"os"
-	"time"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// CONSTANTS
-const portNumber = "8055"
 
 // handle our golang structure
 type MyUrl struct {
@@ -27,7 +32,7 @@ type MyUrl struct {
 	LongUrl     string      			`json:"longurl"`
 	ShortUrl    string      			`json:"shorturl"`
 	CreatedAt   time.Time   			`json:"createdat"`
-	UpdatedAt   time.Time   			`json:"lastupdatedat"`
+	UpdatedAt   time.Time   			`json:"updatedat"`
 }
 
 // database and collection names are statically declared
@@ -38,6 +43,39 @@ func Check(err error){
 	if err != nil{
 		log.Fatal(err)
 	}
+}
+
+// HTTP /POST the / route will allow us to pass in a long URL and receive a short URL
+func CreateEndpoint(w http.ResponseWriter, r *http.Request) {
+	var url MyUrl
+	err := json.NewDecoder(r.Body).Decode(&url)
+	Check(err)
+
+	client,err := CreateConnection()
+	Check(err)
+
+	c := client.Database(database).Collection(collection)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	//create the shorturl
+	url.Id =  primitive.NewObjectID()
+	hd := hashids.NewData()
+	h,err := hashids.NewWithData(hd)
+	Check(err)
+	now := time.Now()
+	url.UrlID, _ = h.Encode([]int{int(now.Unix())})
+	url.ShortUrl = r.Host + "/" + url.UrlID
+	url.CreatedAt = time.Now()
+	_,err = c.InsertOne(ctx,url)
+	Check(err)
+
+	jsonData, err := json.Marshal(url)
+	Check(err)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	w.Write(jsonData)
 }
 
 // HTTP /GET /expand endpoint will allow us to pass in a short URL and receive a long URL
@@ -67,11 +105,13 @@ func ExpandEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonData)
 }
 
-// HTTP /POST the /create route will allow us to pass in a long URL and receive a short URL
-func CreateEndpoint(w http.ResponseWriter, r *http.Request) {
-	var url MyUrl
-	err := json.NewDecoder(r.Body).Decode(&url)
+// HTTP /GET url data
+func GetUrlDataHandler(w http.ResponseWriter, r *http.Request){
+	vars := mux.Vars(r)
+	obj_id,err := primitive.ObjectIDFromHex(vars["id"])
 	Check(err)
+
+	var url MyUrl
 
 	client,err := CreateConnection()
 	Check(err)
@@ -80,22 +120,14 @@ func CreateEndpoint(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	url.Id =  primitive.NewObjectID()
-	hd := hashids.NewData()
-	h,err := hashids.NewWithData(hd)
-	Check(err)
-	now := time.Now()
-	url.UrlID, _ = h.Encode([]int{int(now.Unix())})
-	url.ShortUrl = "http://localhost:" + portNumber + "/" + url.UrlID
-	url.CreatedAt = time.Now()
-	_,err = c.InsertOne(ctx,url)
+	err = c.FindOne(ctx,bson.M{"_id": obj_id}).Decode(&url)
 	Check(err)
 
 	jsonData, err := json.Marshal(url)
 	Check(err)
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	w.Write(jsonData)
 }
 
@@ -147,12 +179,12 @@ func UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 	url.LongUrl = updatedUrl.LongUrl
 	url.UpdatedAt = time.Now()
 
-	// create shorturl
+	// update longurl and show update time
 	var update bson.M
 	update = bson.M{
 		"$set": bson.M{
 			"longurl":url.LongUrl,
-			"lastupdatedat":url.UpdatedAt,
+			"updatedat":url.UpdatedAt,
 		},
 	}
 
@@ -182,8 +214,8 @@ func DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	err = c.FindOne(ctx,bson.M{"_id": obj_id}).Decode(&url)
-	Check(err)
+	//err = c.FindOne(ctx,bson.M{"_id": obj_id}).Decode(&url)
+	//Check(err)
 	_,err = c.DeleteOne(ctx,bson.M{"_id": obj_id})
 	Check(err)
 
@@ -200,7 +232,7 @@ func CreateConnection() (*mongo.Client,error){
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	MongoURI := "mongodb://localhost:27017"
+	MongoURI := os.Getenv("MONGOURI")
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(
 		MongoURI,
 	))
@@ -223,17 +255,16 @@ func main() {
 
 	// API routes,handlers and methods
 	r.HandleFunc("/", CreateEndpoint).Methods("POST")
-	r.HandleFunc("/{urlid}", RootEndpoint).Methods("GET")
+	r.HandleFunc("/{id}", GetUrlDataHandler).Methods("GET")
 	r.HandleFunc("/{id}", UpdateUserHandler).Methods("PUT")
 	r.HandleFunc("/{id}", DeleteUserHandler).Methods("DELETE")
-	r.HandleFunc("/expand/", ExpandEndpoint).Methods("GET")
-	r.HandleFunc("/create", CreateEndpoint).Methods("PUT")
-
+	r.HandleFunc("/expand", ExpandEndpoint).Methods("GET")
+	r.HandleFunc("/{urlid}", RootEndpoint).Methods("GET")
 
 	//Get port
 	Port := os.Getenv("PORT")
 	if Port == "" {
-		Port = portNumber
+		Port = "8045"
 	}
 
 	// establish logger

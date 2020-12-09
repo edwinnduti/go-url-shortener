@@ -16,16 +16,34 @@ A REST API url-shortener made in Golang.
 </ul>
 
 
-To run it locally:
+You can run it locally and online:
+
+##### Locally
 
 ```bash
 $ git clone https://github.com/edwinnduti/go-url-shortener.git
 $ cd go-url-shortener
 $ go install
+$ export MONGOURI=mongodb://localhost:27017
 $ sudo service mongod start
-
 $ go run main.go
 ```
 
+Available locally:
+
+| function              |   path                    |   method  |
+|   ----                |   ----                    |   ----    |
+| Create shorturl       |   /			    		|	POST    |
+| Get single url	    |   /{id}		            |	GET     |
+| Get redirected        |   /{urlid}             	|	GET     |
+| Delete single url 	|   /{id}           		|	DELETE  |
+| update single user	|   /{id}           		|	UPDATE  |
+| Get longurl    	    |   /expand                 |   GET     |   
+
+
+##### Online
+```
+$ curl -X POST -H "Content-Type:application/json" -d {"longurl": "<enter longurl>"} https://shortenizer.herokuapp.com/
+```
 
 Have Fun!
