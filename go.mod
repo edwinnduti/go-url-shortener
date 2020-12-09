@@ -1,3 +1,4 @@
+// +heroku goVersion go1.14
 module github.com/edwinnduti/go-url-shortener
 
 go 1.14
