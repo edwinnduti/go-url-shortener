@@ -43,7 +43,7 @@ Available locally:
 
 ##### Online
 ```
-$ curl -X POST -H "Content-Type:application/json" -d {"longurl": "<enter longurl>"} https://shortenizer.herokuapp.com/
+$ curl -X POST -H "Content-Type:application/json" -d {"longurl": "<enter longurl e.g https://google.com/search?=Skygardener>"} https://localhost:8045/
 ```
 
 Have Fun!
