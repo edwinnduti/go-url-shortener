@@ -29,7 +29,7 @@ import (
 type MyUrl struct {
 	Id 			primitive.ObjectID 		`bson:"_id",json:"id"`
 	UrlID    	string      			`json:"urlid"`
-	LongUrl     string      			`json:"longurl"`
+	LongUrl     json.RawMessage      			`json:"longurl"`
 	ShortUrl    string      			`json:"shorturl"`
 	CreatedAt   time.Time   			`json:"createdat"`
 	UpdatedAt   time.Time   			`json:"updatedat"`
