@@ -148,7 +148,7 @@ func RootEndpoint(w http.ResponseWriter, r *http.Request) {
 	Check(err)
 
 	// Redirect to long url
-	http.Redirect(w, r, string(url.LongUrl), 301)
+	http.Redirect(w, r, url.LongUrl, 301)
 }
 
 // HTTP /PUT user record /{id}
