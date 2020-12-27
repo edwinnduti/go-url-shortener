@@ -147,8 +147,10 @@ func RootEndpoint(w http.ResponseWriter, r *http.Request) {
 	err = c.FindOne(ctx, bson.M{"urlid": obj_id}).Decode(&url)
 	Check(err)
 
+	lurl := []byte(url.LongUrl)
+
 	// Redirect to long url
-	http.Redirect(w, r, url.LongUrl, 301)
+	http.Redirect(w, r, string(lurl) , 301)
 }
 
 // HTTP /PUT user record /{id}
